@@ -721,7 +721,7 @@ func TestBorderPreviewRendersFormAndFrame(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"nfo01 80x24", "nfo01 132x40", "Username:  nomadx", "Password:  ********"} {
+	for _, want := range []string{"nfo01 80x24", "nfo01 132x40", "Username:  nomadx", "Password:  ••••••••"} {
 		if !strings.Contains(preview, want) {
 			t.Errorf("preview omitted %q", want)
 		}

@@ -280,3 +280,21 @@ border_focus = "#bd93f9"
 		t.Error("a theme without label colors does not match the built-in theme with the same palette")
 	}
 }
+
+func TestPasswordIsMaskedWithBullets(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("SYSC_BG", "")
+	t.Cleanup(func() { applyTheme("dracula", true) })
+	m := initialModel(Config{TestMode: true}, false)
+	m.width, m.height = 132, 40
+	m.mode, m.focusState = ModePassword, FocusPassword
+	m.passwordInput.SetValue("secret")
+
+	plain := stripAnsi(m.renderMainForm(72))
+	if !strings.Contains(plain, "••••••") {
+		t.Errorf("password is not masked with bullets: %q", plain)
+	}
+	if strings.Contains(plain, "*") || strings.Contains(plain, "secret") {
+		t.Errorf("password row shows asterisks or the password: %q", plain)
+	}
+}
