@@ -1,9 +1,13 @@
 package main
 
 import (
+	"math"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/Nomadcxx/sysc-greet/internal/themes"
 	"github.com/charmbracelet/bubbles/v2/textinput"
 	tea "github.com/charmbracelet/bubbletea/v2"
 	"github.com/charmbracelet/lipgloss/v2"
@@ -168,5 +172,111 @@ func TestFocusMarkerKeepsFieldsInPlace(t *testing.T) {
 		if focused, unfocused := column(FocusUsername, text), column(FocusSession, text); focused != unfocused {
 			t.Errorf("%q moves from column %d to %d when focus changes", text, focused, unfocused)
 		}
+	}
+}
+
+// useBundledThemes loads only the themes shipped in the repository.
+func useBundledThemes(t *testing.T) []string {
+	t.Helper()
+	original := themes.CustomThemes
+	t.Cleanup(func() {
+		themes.CustomThemes = original
+		applyTheme("dracula", true)
+	})
+	themes.CustomThemes = make(map[string]themes.ThemeColors)
+	return append(themes.GetAvailableThemes(), themes.ScanCustomThemes([]string{filepath.Join("..", "..", "themes")})...)
+}
+
+func TestLabelContrastInEveryTheme(t *testing.T) {
+	names := useBundledThemes(t)
+	if len(names) < 27 {
+		t.Fatalf("found %d themes, want the 12 built-in and 15 bundled ones", len(names))
+	}
+	for _, name := range names {
+		t.Run(name, func(t *testing.T) {
+			applyTheme(name, true)
+			focused, unfocused := labelColors()
+			got := contrastRatio(focused, unfocused)
+			t.Logf("focused on unfocused = %.2f, was %.2f; unfocused on background = %.2f; focused lightened: %v",
+				got, contrastRatio(Primary, FgSecondary), contrastRatio(unfocused, BgBase), !sameColor(focused, Primary))
+			if got < labelFocusContrast {
+				t.Errorf("focused label on unfocused label = %.2f, want >= %.1f", got, labelFocusContrast)
+			}
+			// A theme whose fg_muted is already below the limit is left as it is.
+			legible := math.Min(labelMinContrast, contrastRatio(FgMuted, BgBase))
+			if onBackground := contrastRatio(unfocused, BgBase); onBackground < legible {
+				t.Errorf("unfocused label on background = %.2f, want >= %.2f", onBackground, legible)
+			}
+			if onBackground, primary := contrastRatio(focused, BgBase), contrastRatio(Primary, BgBase); onBackground < primary {
+				t.Errorf("focused label on background = %.2f, harder to read than primary (%.2f)", onBackground, primary)
+			}
+		})
+	}
+}
+
+func TestFocusedLabelStaysPrimaryWhereItCan(t *testing.T) {
+	useBundledThemes(t)
+	// Void and Rose-Pine have room for a dimmer label under Primary.
+	// Solarized has not, but its text color is far enough above Primary.
+	for _, name := range []string{"Void", "Rose-Pine", "Solarized"} {
+		applyTheme(name, true)
+		if focused, _ := labelColors(); !sameColor(focused, Primary) {
+			t.Errorf("%s: focused label is not the theme primary", name)
+		}
+	}
+	applyTheme("Solarized", true)
+	if _, unfocused := labelColors(); !sameColor(unfocused, FgPrimary) {
+		t.Error("Solarized: unfocused label is not the theme text color")
+	}
+}
+
+func TestThemeLabelColorsOverrideDerivedOnes(t *testing.T) {
+	useBundledThemes(t)
+	dir := t.TempDir()
+	palette := `[colors]
+bg_base = "#282a36"
+bg_active = "#44475a"
+primary = "#bd93f9"
+secondary = "#8be9fd"
+accent = "#50fa7b"
+warning = "#f1fa8c"
+danger = "#ff5555"
+fg_primary = "#f8f8f2"
+fg_secondary = "#f1f2f6"
+fg_muted = "#6272a4"
+border_focus = "#bd93f9"
+`
+	for file, labels := range map[string]string{
+		"both.toml":      "label_focused = \"#8be9fd\"\nlabel_unfocused = \"#44475a\"\n",
+		"unfocused.toml": "label_unfocused = \"#44475a\"\n",
+		"neither.toml":   "",
+	} {
+		if err := os.WriteFile(filepath.Join(dir, file), []byte(palette+labels), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	themes.ScanCustomThemes([]string{dir})
+
+	applyTheme("both", true)
+	focused, unfocused := labelColors()
+	if !sameColor(focused, lipgloss.Color("#8be9fd")) || !sameColor(unfocused, lipgloss.Color("#44475a")) {
+		t.Error("theme label colors were not used")
+	}
+
+	applyTheme("unfocused", true)
+	focused, unfocused = labelColors()
+	if !sameColor(unfocused, lipgloss.Color("#44475a")) {
+		t.Error("label_unfocused was not used")
+	}
+	if focused == nil || contrastRatio(focused, unfocused) < labelFocusContrast {
+		t.Error("the focused label was not derived against label_unfocused")
+	}
+
+	applyTheme("neither", true)
+	derivedFocused, derivedUnfocused := labelColors()
+	applyTheme("dracula", true)
+	focused, unfocused = labelColors()
+	if !sameColor(focused, derivedFocused) || !sameColor(unfocused, derivedUnfocused) {
+		t.Error("a theme without label colors does not match the built-in theme with the same palette")
 	}
 }

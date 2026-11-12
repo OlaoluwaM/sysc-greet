@@ -179,6 +179,11 @@ EOF
                 type = types.strMatching "#[0-9a-fA-F]{6}";
                 example = "#1a1a2e";
                 description = "The `${field}` color, as `#RRGGBB`.";
+              }) // genAttrs [ "label_focused" "label_unfocused" ] (field: mkOption {
+                type = types.nullOr (types.strMatching "#[0-9a-fA-F]{6}");
+                default = null;
+                example = "#e94560";
+                description = "The `${field}` color, as `#RRGGBB`. When null, sysc-greet derives it from the other colors.";
               });
             };
           });
@@ -193,7 +198,7 @@ EOF
           # installed into the package and not linked in beside it.
           package = (mkPackage pkgs).overrideAttrs (old: {
             postInstall = old.postInstall + concatStrings (mapAttrsToList (file: theme: ''
-              install -m644 ${themeFormat.generate "sysc-greet-theme.toml" theme} \
+              install -m644 ${themeFormat.generate "sysc-greet-theme.toml" (theme // { colors = filterAttrs (_: color: color != null) theme.colors; })} \
                 "$out/share/sysc-greet/themes/"${escapeShellArg "${file}.toml"}
             '') cfg.themes);
           });

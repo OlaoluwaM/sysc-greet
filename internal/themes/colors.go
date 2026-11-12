@@ -29,6 +29,9 @@ type CustomThemeConfig struct {
 		FgSecondary string `toml:"fg_secondary"`
 		FgMuted     string `toml:"fg_muted"`
 		BorderFocus string `toml:"border_focus"`
+		// Optional. sysc-greet derives the ones left out from the palette.
+		LabelFocused   string `toml:"label_focused"`
+		LabelUnfocused string `toml:"label_unfocused"`
 	} `toml:"colors"`
 }
 
@@ -58,6 +61,11 @@ type ThemeColors struct {
 	// Border colors
 	BorderDefault color.Color
 	BorderFocus   color.Color
+
+	// Field label colors with and without focus. Nil unless the theme sets
+	// them; the greeter then derives them from the palette.
+	LabelFocused   color.Color
+	LabelUnfocused color.Color
 }
 
 // GetTheme returns theme colors for the given theme name
@@ -437,7 +445,18 @@ func loadCustomTheme(path string) (ThemeColors, error) {
 		FgSubtle:      lipgloss.Color(config.Colors.FgMuted), // Use FgMuted as fallback
 		BorderDefault: lipgloss.Color(config.Colors.BgActive),
 		BorderFocus:   lipgloss.Color(config.Colors.BorderFocus),
+
+		LabelFocused:   optionalColor(config.Colors.LabelFocused),
+		LabelUnfocused: optionalColor(config.Colors.LabelUnfocused),
 	}, nil
+}
+
+// optionalColor returns nil for a color the theme file leaves out.
+func optionalColor(value string) color.Color {
+	if strings.TrimSpace(value) == "" {
+		return nil
+	}
+	return lipgloss.Color(value)
 }
 
 // ThemeColorStrings holds hex color strings for a theme (for palette generation)

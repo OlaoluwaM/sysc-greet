@@ -114,7 +114,7 @@ type loginViewKey struct {
 	usernameView, passwordView string
 	ambientDual, ambientShort  string
 	clockSecond                int64
-	themeColors                [12]uint64
+	themeColors                [14]uint64
 }
 
 type loginViewCache struct {
@@ -176,11 +176,12 @@ func (m model) loginViewKey(width, height int) (loginViewKey, bool) {
 		hideAmbient:         m.hideAmbient,
 		usernameView:        m.usernameInput.View(),
 		passwordView:        m.passwordInput.View(),
-		themeColors: [12]uint64{
+		themeColors: [14]uint64{
 			colorCacheKey(Primary), colorCacheKey(Secondary), colorCacheKey(Accent),
 			colorCacheKey(Danger), colorCacheKey(Warning), colorCacheKey(BgBase),
 			colorCacheKey(BorderDefault), colorCacheKey(BorderFocus), colorCacheKey(FgPrimary),
 			colorCacheKey(FgSecondary), colorCacheKey(FgMuted), colorCacheKey(FgSubtle),
+			colorCacheKey(LabelFocused), colorCacheKey(LabelUnfocused),
 		},
 	}
 	if m.config.ShowTime {
