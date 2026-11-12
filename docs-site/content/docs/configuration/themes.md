@@ -78,6 +78,31 @@ All color fields are required. Use hex format (`#RRGGBB`).
 
 Example themes are provided in the repository at `examples/themes/`.
 
+### NixOS
+
+`/usr/share/sysc-greet/themes/` is a read-only link into the Nix store, so declare themes with the module's `themes` option. Each attribute is installed as `<attribute name>.toml` beside the bundled themes:
+
+```nix
+services.sysc-greet.themes.my-theme = {
+  name = "My Theme";
+  colors = {
+    bg_base = "#1a1a2e";
+    bg_active = "#2a2a3e";
+    primary = "#e94560";
+    secondary = "#0f3460";
+    accent = "#16213e";
+    warning = "#f59e0b";
+    danger = "#ef4444";
+    fg_primary = "#ffffff";
+    fg_secondary = "#cccccc";
+    fg_muted = "#888888";
+    border_focus = "#e94560";
+  };
+};
+```
+
+`name` defaults to the attribute name. A missing color or a value that is not `#RRGGBB` fails the build, where a hand-written file with the same mistake is skipped without a message. To replace a bundled theme, use its file name as the attribute name, for example `themes.void`.
+
 ### Community Examples
 
 #### Piink

@@ -161,7 +161,42 @@ EOF
         with lib;
         let
           cfg = config.services.sysc-greet;
-          package = mkPackage pkgs;
+          themeFormat = pkgs.formats.toml { };
+          # Every color sysc-greet requires; it skips a theme file missing one.
+          themeColorFields = [
+            "bg_base" "bg_active" "primary" "secondary" "accent" "warning"
+            "danger" "fg_primary" "fg_secondary" "fg_muted" "border_focus"
+          ];
+          themeType = types.submodule ({ name, ... }: {
+            options = {
+              name = mkOption {
+                type = types.str;
+                default = name;
+                defaultText = literalExpression "<attribute name>";
+                description = "Name shown in the Themes menu. A theme named after a built-in theme replaces it.";
+              };
+              colors = genAttrs themeColorFields (field: mkOption {
+                type = types.strMatching "#[0-9a-fA-F]{6}";
+                example = "#1a1a2e";
+                description = "The `${field}` color, as `#RRGGBB`.";
+              });
+            };
+          });
+          bundledThemes = mapAttrs' (file: _: nameValuePair (removeSuffix ".toml" file)
+            (builtins.fromTOML (builtins.readFile (./themes + "/${file}"))))
+            (filterAttrs (file: _: hasSuffix ".toml" file) (builtins.readDir ./themes));
+          # sysc-greet keys themes by lower-cased name and the last file read
+          # wins, so two files sharing a name would silently drop one.
+          themeNames = mapAttrsToList (file: theme: toLower (theme.name or file)) (bundledThemes // cfg.themes);
+          duplicateThemeNames = unique (filter (name: count (other: other == name) themeNames > 1) themeNames);
+          # The data directory is compiled into the binary, so the themes are
+          # installed into the package and not linked in beside it.
+          package = (mkPackage pkgs).overrideAttrs (old: {
+            postInstall = old.postInstall + concatStrings (mapAttrsToList (file: theme: ''
+              install -m644 ${themeFormat.generate "sysc-greet-theme.toml" theme} \
+                "$out/share/sysc-greet/themes/"${escapeShellArg "${file}.toml"}
+            '') cfg.themes);
+          });
           defaultGslapperPackage = gslapper.packages.${pkgs.stdenv.hostPlatform.system}.default;
           compositorPackage =
             if cfg.compositor == "niri" then cfg.niriPackage
@@ -248,9 +283,42 @@ EOF
               default = { };
               description = "Additional greetd settings";
             };
+
+            themes = mkOption {
+              type = types.attrsOf themeType;
+              default = { };
+              example = literalExpression ''
+                {
+                  my-theme = {
+                    name = "My Theme";
+                    colors = {
+                      bg_base = "#1a1a2e";
+                      bg_active = "#2a2a3e";
+                      primary = "#e94560";
+                      secondary = "#0f3460";
+                      accent = "#16213e";
+                      warning = "#f59e0b";
+                      danger = "#ef4444";
+                      fg_primary = "#ffffff";
+                      fg_secondary = "#cccccc";
+                      fg_muted = "#888888";
+                      border_focus = "#e94560";
+                    };
+                  };
+                }
+              '';
+              description = "Custom themes, installed as `<attribute name>.toml` beside the bundled themes. Use a bundled theme's file name as the attribute name to replace that theme.";
+            };
           };
 
           config = mkIf cfg.enable {
+            assertions = [
+              {
+                assertion = duplicateThemeNames == [ ];
+                message = "services.sysc-greet.themes: more than one theme is named ${concatStringsSep ", " duplicateThemeNames}. To replace a bundled theme, use its file name as the attribute name.";
+              }
+            ];
+
             # Create greeter user
             users.users.greeter = {
               isSystemUser = true;
