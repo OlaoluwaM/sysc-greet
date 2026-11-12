@@ -360,3 +360,27 @@ func (m model) getFocusColor(target FocusState) color.Color {
 	}
 	return FgSecondary
 }
+
+// focusMarker fills the gutter ahead of the focused field's label.
+const focusMarker = "▸ "
+
+// focusLabelWidth is the label column shared by the session and username
+// rows: the gutter plus "Username:", the longer of the two labels.
+const focusLabelWidth = 11
+
+// renderFocusLabel renders a field label behind a gutter that holds
+// focusMarker while the field has focus. Many palettes give Primary and
+// FgSecondary nearly the same brightness, so the label color alone does not
+// show where focus is. The gutter is reserved without focus too, so labels do
+// not move when focus does. width covers the gutter and the label.
+func (m model) renderFocusLabel(target FocusState, label string, width int) string {
+	gutter := strings.Repeat(" ", lipgloss.Width(focusMarker))
+	if m.focusState == target {
+		gutter = focusMarker
+	}
+	return lipgloss.NewStyle().
+		Bold(true).
+		Foreground(m.getFocusColor(target)).
+		Width(width).
+		Render(gutter + label)
+}
