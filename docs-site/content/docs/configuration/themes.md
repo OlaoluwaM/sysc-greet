@@ -76,6 +76,20 @@ border_focus = "#e94560"
 
 All color fields are required. Use hex format (`#RRGGBB`).
 
+### Label colors
+
+The label of the focused field and the labels of the others are told apart by color, and by a `▸` in front of the focused one. sysc-greet derives both colors from the palette so that they are about 3:1 apart:
+
+- The unfocused label is `fg_muted`, dimmed toward `bg_base` but kept at least 3:1 above it. If `fg_primary` is further from the focused label than that, the unfocused label is `fg_primary`.
+- The focused label is `primary`. If neither choice above is 3:1 away from it, which happens when `primary` is under roughly 9:1 against `bg_base`, the focused label is a lighter tint of `primary`.
+
+To choose either color yourself, add it to `[colors]`. Both are optional, and the one you leave out is still derived:
+
+```toml
+label_focused = "#e94560"
+label_unfocused = "#6b6b80"
+```
+
 Example themes are provided in the repository at `examples/themes/`.
 
 ### NixOS
@@ -101,7 +115,7 @@ services.sysc-greet.themes.my-theme = {
 };
 ```
 
-`name` defaults to the attribute name. A missing color or a value that is not `#RRGGBB` fails the build, where a hand-written file with the same mistake is skipped without a message. To replace a bundled theme, use its file name as the attribute name, for example `themes.void`.
+`name` defaults to the attribute name, and `label_focused` and `label_unfocused` may be left out. A missing color or a value that is not `#RRGGBB` fails the build, where a hand-written file with the same mistake is skipped without a message. To replace a bundled theme, use its file name as the attribute name, for example `themes.void`.
 
 ### Community Examples
 

@@ -70,6 +70,8 @@ func applyThemeWithWallpaper(themeName string, testMode bool, setWallpaper bool)
 		// Set border colors from custom theme
 		BorderDefault = theme.BorderDefault
 		BorderFocus = theme.BorderFocus
+		LabelFocused = theme.LabelFocused
+		LabelUnfocused = theme.LabelUnfocused
 
 		// Set wallpaper for custom theme
 		if setWallpaper {
@@ -246,6 +248,7 @@ func applyThemeWithWallpaper(themeName string, testMode bool, setWallpaper bool)
 
 	// Update border colors based on new primary
 	BorderFocus = Primary
+	LabelFocused, LabelUnfocused = nil, nil
 
 	// CHANGED 2025-10-10 - Set theme-aware wallpaper via swww
 	if setWallpaper {
@@ -353,12 +356,13 @@ func (m model) getAnimatedColor() color.Color {
 	return colors[index]
 }
 
-// getFocusColor returns the appropriate color based on focus state
+// getFocusColor returns the label color for a field with or without focus.
 func (m model) getFocusColor(target FocusState) color.Color {
+	focused, unfocused := labelColors()
 	if m.focusState == target {
-		return Primary
+		return focused
 	}
-	return FgSecondary
+	return unfocused
 }
 
 // focusMarker fills the gutter ahead of the focused field's label.

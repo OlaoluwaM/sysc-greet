@@ -174,3 +174,34 @@ func TestScanBundledThemesSkipsMissingField(t *testing.T) {
 		t.Fatal("invalid theme entered the registry")
 	}
 }
+
+func TestLabelColorsAreOptional(t *testing.T) {
+	base, err := os.ReadFile(filepath.Join(bundledDir(), "void.toml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(t.TempDir(), "labels.toml")
+
+	if err := os.WriteFile(path, base, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	th, err := loadCustomTheme(path)
+	if err != nil {
+		t.Fatalf("loadCustomTheme: %v", err)
+	}
+	if th.LabelFocused != nil || th.LabelUnfocused != nil {
+		t.Error("label colors are set for a theme that leaves them out")
+	}
+
+	labels := "label_focused = \"#ffffff\"\nlabel_unfocused = \"#707070\"\n"
+	if err := os.WriteFile(path, append(base, labels...), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	th, err = loadCustomTheme(path)
+	if err != nil {
+		t.Fatalf("loadCustomTheme: %v", err)
+	}
+	if th.LabelFocused == nil || th.LabelUnfocused == nil {
+		t.Error("label_focused and label_unfocused were not loaded")
+	}
+}
