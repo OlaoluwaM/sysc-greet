@@ -115,3 +115,58 @@ func TestClosingMenuRestoresUsernameFocus(t *testing.T) {
 		}
 	}
 }
+
+func TestFocusMarkerFollowsFocus(t *testing.T) {
+	const width = 72
+	for _, tc := range []struct {
+		name     string
+		mode     ViewMode
+		focus    FocusState
+		marked   string
+		unmarked string
+	}{
+		{"username", ModeLogin, FocusUsername, "▸ Username:", "  Session:"},
+		{"session over username", ModeLogin, FocusSession, "▸ Session:", "  Username:"},
+		{"password", ModePassword, FocusPassword, "▸ Password:", "  Session:"},
+		{"session over password", ModePassword, FocusSession, "▸ Session:", "  Password:"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			m := layoutModel(80, 24)
+			m.mode, m.focusState = tc.mode, tc.focus
+			plain := stripAnsi(m.renderMainForm(width))
+			if !strings.Contains(plain, tc.marked) {
+				t.Errorf("focused label %q is not marked", tc.marked)
+			}
+			if !strings.Contains(plain, tc.unmarked) {
+				t.Errorf("unfocused label %q does not keep the marker gutter", tc.unmarked)
+			}
+			if got := strings.Count(plain, strings.TrimSpace(focusMarker)); got != 1 {
+				t.Errorf("form shows %d focus markers, want 1", got)
+			}
+			for _, line := range strings.Split(plain, "\n") {
+				if lipgloss.Width(line) > width {
+					t.Errorf("line is wider than the form: %q", line)
+				}
+			}
+		})
+	}
+}
+
+func TestFocusMarkerKeepsFieldsInPlace(t *testing.T) {
+	column := func(focus FocusState, text string) int {
+		m := layoutModel(80, 24)
+		m.focusState = focus
+		for _, line := range strings.Split(stripAnsi(m.renderMainForm(72)), "\n") {
+			if index := strings.Index(line, text); index >= 0 {
+				return lipgloss.Width(line[:index])
+			}
+		}
+		t.Fatalf("%q missing from the form", text)
+		return 0
+	}
+	for _, text := range []string{"Session:", "XFCE", "Username:", "nomadx"} {
+		if focused, unfocused := column(FocusUsername, text), column(FocusSession, text); focused != unfocused {
+			t.Errorf("%q moves from column %d to %d when focus changes", text, focused, unfocused)
+		}
+	}
+}

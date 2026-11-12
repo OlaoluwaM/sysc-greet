@@ -86,11 +86,7 @@ func (m model) renderMainForm(width int) string {
 	// Current input based on mode
 	switch m.mode {
 	case ModeLogin:
-		usernameLabel := lipgloss.NewStyle().
-			Bold(true).
-			Foreground(m.getFocusColor(FocusUsername)).
-			Width(10).
-			Render("Username:")
+		usernameLabel := m.renderFocusLabel(FocusUsername, "Username:", focusLabelWidth)
 
 		// Remove Foreground, use BgBase only
 		inputStyle := lipgloss.NewStyle().
@@ -102,7 +98,6 @@ func (m model) renderMainForm(width int) string {
 		usernameRow := lipgloss.JoinHorizontal(
 			lipgloss.Left,
 			usernameLabel,
-			" ",
 			usernameInput,
 		)
 		parts = append(parts, usernameRow)
@@ -140,13 +135,10 @@ func (m model) renderMainForm(width int) string {
 		if m.authPromptText != "" {
 			passwordLabelText = m.authPromptText
 		}
-		m.passwordInput.SetWidth(max(1, width-lipgloss.Width(passwordLabelText)-4))
+		passwordLabelWidth := lipgloss.Width(focusMarker) + lipgloss.Width(passwordLabelText)
+		m.passwordInput.SetWidth(max(1, width-passwordLabelWidth-3))
 		m.passwordInput.SetCursor(m.passwordInput.Position())
-		passwordLabel := lipgloss.NewStyle().
-			Bold(true).
-			Foreground(m.getFocusColor(FocusPassword)).
-			Width(lipgloss.Width(passwordLabelText)).
-			Render(passwordLabelText)
+		passwordLabel := m.renderFocusLabel(FocusPassword, passwordLabelText, passwordLabelWidth)
 
 		// Remove Foreground, use BgBase only
 		inputStyle := lipgloss.NewStyle().
@@ -159,7 +151,6 @@ func (m model) renderMainForm(width int) string {
 		passwordRow := lipgloss.JoinHorizontal(
 			lipgloss.Left,
 			passwordLabel,
-			" ",
 			passwordInput,
 		)
 		parts = append(parts, passwordRow)
@@ -228,11 +219,7 @@ func (m model) renderMainForm(width int) string {
 // renderSessionSelector renders the session selector with dropdown indicator
 func (m model) renderSessionSelector(width int) string {
 	// Session label with focus indication
-	sessionLabel := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(m.getFocusColor(FocusSession)).
-		Width(10).
-		Render("Session:")
+	sessionLabel := m.renderFocusLabel(FocusSession, "Session:", focusLabelWidth)
 
 	// Current session display
 	var sessionDisplay string
@@ -280,7 +267,6 @@ func (m model) renderSessionSelector(width int) string {
 	sessionRow := lipgloss.JoinHorizontal(
 		lipgloss.Left,
 		sessionLabel,
-		" ",
 		sessionDisplay,
 		" ",
 		indicatorStyle,
