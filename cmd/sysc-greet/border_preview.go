@@ -81,7 +81,7 @@ func renderBorderPreview(data []byte, sizes [][2]int) (string, error) {
 		"",
 		"Username:  nomadx",
 		"",
-		"Password:  "+strings.Repeat(string(passwordMask), 8),
+		"Password:  ********",
 	)
 	var out strings.Builder
 	for _, size := range sizes {
