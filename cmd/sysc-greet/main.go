@@ -656,11 +656,6 @@ func sessionCommand(execLine string) []string {
 	return strings.Fields(execLine)
 }
 
-// passwordMask stands in for each typed password character. A bullet sits at
-// mid-height in the cell; the default asterisk rides high in most fonts and
-// looks misaligned beside the label.
-const passwordMask = '•'
-
 func initialModel(config Config, screensaverMode bool) model {
 	// Setup username input with proper styling
 	ti := textinput.New()
@@ -672,7 +667,6 @@ func initialModel(config Config, screensaverMode bool) model {
 	pi.Prompt = ""      // Remove prompt, will be added by layout
 	pi.Placeholder = "" // Remove placeholder
 	pi.EchoMode = textinput.EchoPassword
-	pi.EchoCharacter = passwordMask
 
 	// Load sessions
 	sess, _ := sessions.LoadSessions()
